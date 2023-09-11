@@ -1,5 +1,6 @@
-# data-analyst-challenge
-Data Analyst Challenge 2022
+# Nimble Gravity
+
+## Data Analyst Challenge 2022
 
 The purpose of this repository is to create a system capable of leveraging the CES time series dataset to address the following business inquiries:
 
@@ -118,7 +119,7 @@ RUN chmod +x /app/files/jobs.sh
 CMD ["/app/files/jobs.sh"]
 ```
 
-As can be seen, the script file `jobs.sh` will take care of all the processes to be executed. This file looks like:
+As can be seen, the script file `jobs.sh` will take care of all the processes to be executed. I employ the Postgres client `psql` to remotely execute commands on the `numble` database. This file looks like:
 ```bash
 #!/bin/sh -x
 
@@ -229,7 +230,7 @@ GROUP BY month_year, year, month
 ORDER BY year, month;
 ```
 
-The logic is simple: we query relevants series_id related to women job positions, cross that with the historical data, and the perform the aggregations by year and month. Additional work is done just to present the data nicely.
+The logic is simple: we query relevants series_id related to women job positions, cross that with the historical data, and then perform the aggregations by year and month. Additional work is done just to present the data nicely.
 
 
 3. The `step03_creating_ratio_evolution_pro_sup.sql` file takes care of creating a table to answer the question: how was the evolution of the ratio "production employees / supervisory employees" during time?, it looks as follows:
@@ -296,4 +297,97 @@ ORDER BY year, month;
 
 The approach mirrors the one used for 'women_in_government.' Initially, we gather records pertaining to both supervisor and all job positions. Subsequently, we subtract the supervisor-related job positions from the total job count to isolate the non-supervisor positions. From this point, we calculate the desired ratio.
 
+We then perform the migration by typing:
+
+```bash
+docker run --network="host" md_img
+```
+
+If everything works fine, you'll see the following prompt:
+```bash
+enino@DESKTOP-NDV46PT MINGW64 ~/Documents/Nimble/Migration_service
+$ docker run --network="host" md_img
++ export 'PGPASSWORD=admin'
++ echo '* Step01 - Creating source tables, and migrating the data'
++ psql -h localhost -p 8000 -U admin -d nimble -f step01_copying_data.sql
+* Step01 - Creating source tables, and migrating the data
+DROP TABLE
+psql:step01_copying_data.sql:3: NOTICE:  table "data_" does not exist, skipping
+DROP TABLE
+psql:step01_copying_data.sql:4: NOTICE:  table "series" does not exist, skipping
+CREATE TABLE
+CREATE TABLE
+COPY 8237965
+COPY 23981
+* Step01 - Ready
+* Step02 - Creating the women_in_government table
++ echo '* Step01 - Ready'
++ echo '* Step02 - Creating the women_in_government table'
++ psql -h localhost -p 8000 -U admin -d nimble -f step02_creating_women_in_government.sql       
+DROP TABLE
+psql:step02_creating_women_in_government.sql:1: NOTICE:  table "women_in_government" does not exist, skipping
+SELECT 716
+* Step02 - Ready
+* Step03 - Creating the ratio_evolution_pro_sup table
++ echo '* Step02 - Ready'
++ echo '* Step03 - Creating the ratio_evolution_pro_sup table'
++ psql -h localhost -p 8000 -U admin -d nimble -f step03_creating_ratio_evolution_pro_sup.sql   
+psql:step03_creating_ratio_evolution_pro_sup.sql:1: NOTICE:  table "ratio_evolution_pro_sup" does not exist, skipping
+DROP TABLE
+SELECT 1016
+* Step03 - Ready
++ echo '* Step03 - Ready'
+```
 ## Establishing a PostgREST Access Point
+
+In the final stage, we create a container to publish a PostgREST service. The Dockerfile looks as follows:
+```docker
+# Use the official PostgREST image as the base image
+FROM postgrest/postgrest:latest
+
+# Expose the default PostgREST port (3000)
+EXPOSE 3000
+
+# Define environment variables for PostgREST
+ENV PGRST_DB_URI="postgres://admin:admin@localhost:8000/nimble"
+ENV PGRST_DB_SCHEMA="public"
+ENV PGRST_DB_ANON_ROLE="anon"
+
+# Start PostgREST
+CMD ["postgrest"]
+```
+
+Go to the `PostgREST_service` folder and type
+```bash
+docker build -t pr_img .
+```
+to build the PostgREST image. From here, we launch the service via:
+```bash
+docker run --network="host" pr_img
+```
+
+If everything works correctly, you should see the following prompt:
+```bash
+enino@DESKTOP-NDV46PT MINGW64 ~/Documents/Nimble/PostgREST_service
+$ docker run --network="host" pr_img
+11/Sep/2023:10:02:00 +0000: Starting PostgREST 11.2.0...
+11/Sep/2023:10:02:00 +0000: Attempting to connect to the database...
+11/Sep/2023:10:02:00 +0000: Connection successful
+11/Sep/2023:10:02:00 +0000: Listening on port 3000
+11/Sep/2023:10:02:00 +0000: Config reloaded
+11/Sep/2023:10:02:00 +0000: Listening for notifications on the pgrst channel
+11/Sep/2023:10:02:00 +0000: Schema cache loaded
+```
+
+The system will be ready to receive requests.
+
+# Final plots/comments
+
+By analyzing the plots within the 'Migration_Tester.ipynb' notebook, it becomes evident that there has been a significant increase in the participation of women in government positions. 
+
+![](images/women_in_government.png)
+
+Furthermore, the ratio between production employees and supervisory employees has gradually approached unity, suggesting that individuals are becoming increasingly self-sufficient and requiring minimal supervision to perform their tasks effectively.
+
+![](images/sup_no_sup_ratop.png)
+
