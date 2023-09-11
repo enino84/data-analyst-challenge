@@ -88,6 +88,8 @@ After setting up the database system, the next step is populating it with the ne
 1. `ce.data.0.AllCESSeries`
 2. `ce.series`
 
+** Please, copy these files within the folder `Migration_service/files` **
+
 These files serve as the essential data inputs that enable us to answer the provided business questions.
 
 Go to the `Migration_service` folder and type
