@@ -16,6 +16,8 @@ To achieve these objectives, we employ the following methodology:
 
 - **Establishing a PostgREST Access Point:** To enable straightforward data retrieval and interaction, we set up a PostgREST access point. This interface simplifies the process of querying and extracting data from the database.
 
+In all cases, I employ Docker containers because they are portable, consistent, scalable, secure, and efficient. These qualities make them a valuable tool for developing, deploying, and managing applications. So, the Docker daemon must be running for the following steps to work properly.
+
 # Proposed solution
 
 Following I detail each of these steps:
